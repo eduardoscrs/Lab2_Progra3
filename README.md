@@ -57,3 +57,9 @@ Implementar los siguientes métodos:
 | PATCH  | `/vuelos/reordenar`     | Reordena manualmente la cola (Ej: por retrasos, cambios de prioridad). |
 
 ---
+
+
+### Ejecutar el Proyecto en Entorno Virtual
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
