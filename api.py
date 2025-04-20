@@ -1,22 +1,44 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
+from database import SessionLocal, engine
+from model import Vuelo, VueloORM, ReordenarRequest
 from model import DoublyLinkedList
-from model import Vuelo, ReordenarRequest
+
+# Crear tablas
+from database import Base
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 lista_vuelos = DoublyLinkedList()
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.post("/vuelos")
-def agregar_vuelo(vuelo: Vuelo, emergencia: bool = False):
+def agregar_vuelo(vuelo: Vuelo, emergencia: bool = False, db: Session = Depends(get_db)):
+    vuelo_db = VueloORM(**vuelo.dict())
+    db.add(vuelo_db)
+    db.commit()
+    db.refresh(vuelo_db)
+
     if emergencia:
-        lista_vuelos.insertar_al_frente(vuelo)
+        lista_vuelos.insertar_al_frente(vuelo.dict())
     else:
-        lista_vuelos.insertar_al_final(vuelo)
-    return {"mensaje": "Vuelo agregado exitosamente"}
+        lista_vuelos.insertar_al_final(vuelo.dict())
+
+    return {"mensaje": "Vuelo agregado exitosamente", "vuelo": vuelo_db}
 
 @app.post("/vuelos/insertar")
-def insertar_vuelo(vuelo: Vuelo, posicion: int):
+def insertar_vuelo(vuelo: Vuelo, posicion: int, db: Session = Depends(get_db)):
     try:
-        lista_vuelos.insertar_en_posicion(vuelo, posicion)
+        lista_vuelos.insertar_en_posicion(vuelo.dict(), posicion)
+        vuelo_db = VueloORM(**vuelo.dict())
+        db.add(vuelo_db)
+        db.commit()
         return {"mensaje": "Vuelo insertado exitosamente"}
     except IndexError:
         raise HTTPException(status_code=400, detail="Posición fuera de rango")
@@ -53,5 +75,5 @@ def extraer_vuelo(posicion: int):
 
 @app.patch("/vuelos/reordenar")
 def reordenar_vuelos(request: ReordenarRequest):
-    lista_vuelos.reordenar(request.nueva_lista)
+    lista_vuelos.reordenar([vuelo.dict() for vuelo in request.nueva_lista])
     return {"mensaje": "Lista de vuelos reordenada exitosamente"}

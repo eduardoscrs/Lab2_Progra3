@@ -1,6 +1,30 @@
-class DoublyLinkedList:
-    """Doubly linked list implementation with required functionalities."""
+from sqlalchemy import Column, Integer, String
+from pydantic import BaseModel
+from database import Base
 
+class VueloORM(Base):
+    __tablename__ = "vuelos"
+    id = Column(Integer, primary_key=True, index=True)
+    codigo = Column(String, index=True)
+    origen = Column(String)
+    destino = Column(String)
+    prioridad = Column(String)
+
+class Vuelo(BaseModel):
+    codigo: str
+    origen: str
+    destino: str
+    prioridad: str = "normal"
+
+    class Config:
+        orm_mode = True
+
+class ReordenarRequest(BaseModel):
+    nueva_lista: list[Vuelo]
+
+
+### model.py (Estructura de datos)
+class DoublyLinkedList:
     class _Node:
         __slots__ = '_element', '_prev', '_next'
 
